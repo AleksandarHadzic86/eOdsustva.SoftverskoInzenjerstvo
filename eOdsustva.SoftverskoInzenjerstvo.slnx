@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="eOdsustva.SoftverskoInzenjerstvo/eOdsustva.SoftverskoInzenjerstvo.csproj" />
+  <Project Path="LeaveTypesControllerTests/eOdsustva.xUnitTests.csproj" Id="5a263982-71da-46f9-8a10-e01cd18a51e0" />
 </Solution>
