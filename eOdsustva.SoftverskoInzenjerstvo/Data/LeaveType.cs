@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace eOdsustva.SoftverskoInzenjerstvo.Data
@@ -8,9 +9,10 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Data
         
         public int Id { get; set; }
 
-        [Column(TypeName = "nvarchar(150)")]
+        [Display(Name = "Naziv")]
         public string Name { get; set; }
 
+        [Display(Name = "Broj dana")]   
         public int NumberOfDays { get; set; }
     }
 }
