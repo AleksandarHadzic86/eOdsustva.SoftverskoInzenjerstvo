@@ -9,10 +9,8 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Data
         
         public int Id { get; set; }
 
-        [Display(Name = "Naziv")]
         public string Name { get; set; }
 
-        [Display(Name = "Broj dana")]   
         public int NumberOfDays { get; set; }
     }
 }

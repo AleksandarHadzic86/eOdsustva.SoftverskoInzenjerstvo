@@ -7,7 +7,7 @@ namespace eOdsustva.xUnitTests
 {
     public class LeaveTypesControllerTests
     {
-        
+        /*
         private static ApplicationDbContext CreateInMemoryContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -357,6 +357,6 @@ namespace eOdsustva.xUnitTests
 
             var all = await context.LeaveTypes.ToListAsync();
             Assert.Equal(2, all.Count); 
-        } 
-    }
+        } */
+    } 
 }

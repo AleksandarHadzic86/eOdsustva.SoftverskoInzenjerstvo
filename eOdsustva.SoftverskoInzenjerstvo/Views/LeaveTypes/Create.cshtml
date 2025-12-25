@@ -1,4 +1,5 @@
-﻿@model eOdsustva.SoftverskoInzenjerstvo.Data.LeaveType
+﻿@using eOdsustva.SoftverskoInzenjerstvo.Models.LeaveTypes
+@model LeaveTypeCreateVM
 
 @{
     ViewData["Title"] = "Kreiraj Vrstu Odsustva";
@@ -21,6 +22,7 @@
                 <input asp-for="NumberOfDays" class="form-control" />
                 <span asp-validation-for="NumberOfDays" class="text-danger"></span>
             </div>
+            <input type="hidden" name="id" />
             <br/>
             <div class="form-group">
                 <input type="submit" value="Kreiraj" class="btn btn-success" />

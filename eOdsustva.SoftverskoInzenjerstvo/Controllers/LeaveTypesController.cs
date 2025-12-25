@@ -6,46 +6,59 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using eOdsustva.SoftverskoInzenjerstvo.Data;
+using AutoMapper;
+using eOdsustva.SoftverskoInzenjerstvo.Models.LeaveTypes;
+using Microsoft.AspNetCore.Authorization;
+using eOdsustva.SoftverskoInzenjerstvo.Common;
 
 namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
 {
+    [Authorize(Roles = Roles.Administrator)]
     public class LeaveTypesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
+        private const string NameExistsValidationMessage = "Ovaj tip odsustva već postoji.";
 
-        public LeaveTypesController(ApplicationDbContext context)
+        public LeaveTypesController(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
-        }
-
-        
+            _mapper = mapper;
+        }   
         public async Task<IActionResult> Index()
         {
             var data = await _context.LeaveTypes.ToListAsync();
-            return View(data);
+           
+            var viewData = _mapper.Map<List<LeaveTypeReadOnlyVM>>(data);
+
+            return View(viewData);
         }
 
        
         public IActionResult Create()
         {
             return View();
-        }
-
-       
+        }       
         
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,NumberOfDays")] LeaveType leaveType)
+        public async Task<IActionResult> Create(LeaveTypeCreateVM leaveTypeCreateVM)
         {
+            if (await CheckIfLeaveTypeNameExists(leaveTypeCreateVM.Name))
+            {
+                ModelState.AddModelError(nameof(leaveTypeCreateVM.Name), NameExistsValidationMessage);
+
+            }
             if (ModelState.IsValid)
             {
+                var leaveType = _mapper.Map<LeaveType>(leaveTypeCreateVM);
                 _context.Add(leaveType);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(leaveType);
+            return View(leaveTypeCreateVM);
         }
-    
+
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -60,8 +73,10 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
                 return NotFound();
             }
 
-            return View(leaveType);
+            var viewData = _mapper.Map<LeaveTypeReadOnlyVM>(leaveType);
+            return View(viewData);
         }
+
 
         public async Task<IActionResult> Edit(int? id)
         {
@@ -75,29 +90,38 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
             {
                 return NotFound();
             }
-            return View(leaveType);
+
+            var viewData = _mapper.Map<LeaveTypeEditVM>(leaveType);
+
+            return View(viewData);
         }
 
-        
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,NumberOfDays")] LeaveType leaveType)
+        public async Task<IActionResult> Edit(int id, LeaveTypeEditVM leaveTypeEditVM)
         {
-            if (id != leaveType.Id)
+            if (id != leaveTypeEditVM.Id)
             {
                 return NotFound();
+            }
+
+            if (await CheckIfLeaveTypeNameExistsForEdit(leaveTypeEditVM))
+            {
+                ModelState.AddModelError(nameof(leaveTypeEditVM.Name), NameExistsValidationMessage);
+
             }
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    var leaveType = _mapper.Map<LeaveType>(leaveTypeEditVM);
                     _context.Update(leaveType);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!LeaveTypeExists(leaveType.Id))
+                    if (!LeaveTypeExists(leaveTypeEditVM.Id))
                     {
                         return NotFound();
                     }
@@ -108,8 +132,9 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(leaveType);
+            return View(leaveTypeEditVM);
         }
+
 
         
         public async Task<IActionResult> Delete(int? id)
@@ -129,7 +154,6 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
             return View(leaveType);
         }
 
-        
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -147,6 +171,17 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
         private bool LeaveTypeExists(int id)
         {
             return _context.LeaveTypes.Any(e => e.Id == id);
-        } 
+        }
+
+        private async Task<bool> CheckIfLeaveTypeNameExists(string name)
+        {
+            var lowercaseName = name.ToLower();
+            return await _context.LeaveTypes.AnyAsync(lt => lt.Name.ToLower().Equals(lowercaseName));
+        }
+        private async Task<bool> CheckIfLeaveTypeNameExistsForEdit(LeaveTypeEditVM leaveTypeEditVM)
+        {
+            var lowercaseName = leaveTypeEditVM.Name.ToLower();
+            return await _context.LeaveTypes.AnyAsync(lt => lt.Name.ToLower().Equals(lowercaseName) && lt.Id != leaveTypeEditVM.Id);
+        }
     }
 }
