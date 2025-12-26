@@ -1,14 +1,14 @@
-﻿@using eOdsustva.SoftverskoInzenjerstvo.Models.LeaveTypes
-@model IEnumerable<LeaveTypeReadOnlyVM>
+﻿@using eOdsustva.SoftverskoInzenjerstvo.Models.Periods
+@model IEnumerable<PeriodVM>
 
 @{
-    ViewData["Title"] = "Vrste Odsustva";
+    ViewData["Title"] = "Periodi";
 }
 
-<h2>Vrste Odsustva</h2>
+<h2>Periodi</h2>
 
 <p>
-    <a asp-action="Create" class="btn btn-primary">Kreiraj Nov</a>
+    <a asp-action="Create" class="btn btn-primary">Kreiraj nov</a>
 </p>
 <table class="table table-striped table-bordered align-middle">
     <thead class="table-light">
@@ -17,7 +17,10 @@
                 @Html.DisplayNameFor(model => model.Name)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.NumberOfDays)
+                @Html.DisplayNameFor(model => model.StartDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EndDate)
             </th>
             <th></th>
         </tr>
@@ -29,12 +32,14 @@
                 @Html.DisplayFor(modelItem => item.Name)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.NumberOfDays)
+                @Html.DisplayFor(modelItem => item.StartDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EndDate)
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning">Izmeni</a> |
                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">Detalji</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Obriši</a>
             </td>
         </tr>
 }

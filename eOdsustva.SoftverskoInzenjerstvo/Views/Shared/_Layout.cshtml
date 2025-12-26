@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using eOdsustva.SoftverskoInzenjerstvo.Common
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -26,11 +27,24 @@
                         <li class="nav-item">
                             <a class="nav-link text-light" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
-                        @if (User.IsInRole("Administrator"))
+                        <li><a class="nav-link text-light" asp-area="" asp-controller="LeaveAllocations" asp-action="Index">Dodela Odsustva</a></li>
+
+                        @if (User.IsInRole(Roles.Administrator))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-light" asp-area="" asp-controller="LeaveTypes" asp-action="Index">Vrste Odsustva</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Administracija
+                                </a>
+                                <ul class="dropdown-menu"  aria-labelledby="navbarDropdown"> 
+                                    <li ><a class="nav-link text-dark" asp-area="" asp-controller="LeaveTypes" asp-action="Index">Vrste Odsustva</a></li>      
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="nav-link text-dark" asp-area="" asp-controller="Periods" asp-action="Index">Periodi</a></li>
+
+                                </ul>
                             </li>
+
+
+                            
                         }
                         
                        

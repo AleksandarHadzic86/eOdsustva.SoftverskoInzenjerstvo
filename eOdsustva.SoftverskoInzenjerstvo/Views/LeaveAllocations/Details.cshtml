@@ -1,0 +1,33 @@
+﻿@using eOdsustva.SoftverskoInzenjerstvo.Common
+@model eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation
+
+@{
+    ViewData["Title"] = "Detalji Dodele Odsustva";
+}
+
+<h1>Detalji</h1>
+<h4>Dodela odsustva</h4>
+<hr />
+
+<dl class="row">
+    <dt class="col-sm-3">Vrsta odsustva</dt>
+    <dd class="col-sm-9">@Model.LeaveType?.Name</dd>
+
+    <dt class="col-sm-3">Zaposleni</dt>
+    <dd class="col-sm-9">@Model.Employee?.Email</dd>
+
+    <dt class="col-sm-3">Period</dt>
+    <dd class="col-sm-9">@Model.Period?.Name</dd>
+    @* Ako nema Name nego Year: @Model.Period?.Year *@
+
+    <dt class="col-sm-3">Broj dana</dt>
+    <dd class="col-sm-9">@Model.Days</dd>
+</dl>
+
+<div class="d-flex gap-2">
+    @if (User.IsInRole(Roles.Administrator))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Izmeni</a>
+    }
+    <a asp-action="Index" class="btn btn-primary">Nazad na listu</a>
+</div>
