@@ -24,7 +24,7 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
         public async Task<IActionResult> Index()
         {
             var query = _context.LeaveAllocations
-                .Include(l => l.Employee)
+                .Include(l => l.Employee).ThenInclude(e => e.Department)
                 .Include(l => l.LeaveType)
                 .Include(l => l.Period)
                 .AsQueryable();

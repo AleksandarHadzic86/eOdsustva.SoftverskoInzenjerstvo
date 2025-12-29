@@ -9,7 +9,7 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Models.LeaveTypes
         public string Name { get; set; }
 
 
-        [Display(Name = "Broj dana")]
+        [Display(Name = "Maksimalan Broj dana")]
         public int NumberOfDays { get; set; }
 
     }

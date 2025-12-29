@@ -1,11 +1,11 @@
 ﻿@model eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation
 
 @{
-    ViewData["Title"] = "Create Leave Allocation";
+    ViewData["Title"] = "Kreiraj Dodelu Odsustva";
 }
 
-<h1>Create</h1>
-<h4>Leave Allocation</h4>
+<h1>Kreiraj</h1>
+<h4>Dodelu Odsustva</h4>
 <hr />
 
 <div class="row">
@@ -14,17 +14,17 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="mb-3">
-                <label class="form-label">Leave type</label>
+                <label class="form-label">Tip Odsustva</label>
                 <select asp-for="LeaveTypeId" class="form-select" asp-items="ViewBag.LeaveTypeId">
-                    <option value="">-- Select leave type --</option>
+                    <option value="">-- Selektuj Tip Odsustva --</option>
                 </select>
                 <span asp-validation-for="LeaveTypeId" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Employee</label>
+                <label class="form-label">Zaposleni</label>
                 <select asp-for="EmployeeId" class="form-select" asp-items="ViewBag.EmployeeId">
-                    <option value="">-- Select employee --</option>
+                    <option value="">-- Selektuj Zaposlenog --</option>
                 </select>
                 <span asp-validation-for="EmployeeId" class="text-danger"></span>
             </div>
@@ -32,20 +32,20 @@
             <div class="mb-3">
                 <label class="form-label">Period</label>
                 <select asp-for="PeriodId" class="form-select" asp-items="ViewBag.PeriodId">
-                    <option value="">-- Select period --</option>
+                    <option value="">-- Selektuj period --</option>
                 </select>
                 <span asp-validation-for="PeriodId" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Days</label>
+                <label class="form-label">Dana</label>
                 <input asp-for="Days" class="form-control" />
                 <span asp-validation-for="Days" class="text-danger"></span>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Create</button>
-                <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                <button type="submit" class="btn btn-primary">Kreiraj</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Nazad na Listu</a>
             </div>
         </form>
     </div>

@@ -2,24 +2,25 @@
 @model IEnumerable<eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation>
 
 @{
-    ViewData["Title"] = "Leave Allocations";
+    ViewData["Title"] = "Dodela Odsustva";
 }
 
 <h2>Dodela Odsustva</h2>
-
+<p>
 @if (User.IsInRole(Roles.Administrator))
 {
-    <a asp-action="Create" class="btn btn-primary">Create New</a>
+    <a asp-action="Create" class="btn btn-primary">Kreiraj Nov</a>
 }
-
+</p>
 <table class="table table-striped table-bordered align-middle">
     <thead class="table-light">
         <tr>
-            <th>Leave Type</th>
-            <th>Employee</th>
+            <th>Tip Odsustva</th>
+            <th>Zaposleni</th>
+            <th>Odeljenje</th>
             <th>Period</th>
-            <th class="text-center">Days</th>
-            <th class="text-center">Actions</th>
+            <th class="text-center">Dana</th>
+            <th class="text-center">Akcija</th>
         </tr>
     </thead>
     <tbody>
@@ -32,6 +33,8 @@
                 <td>
                     @item.Employee?.Email
                 </td>
+                <td>
+                    @item.Employee?.Department?.Name
                 <td>
                     @item.Period?.Name
                 </td>

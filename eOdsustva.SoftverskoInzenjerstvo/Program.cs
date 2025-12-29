@@ -3,6 +3,7 @@ using eOdsustva.SoftverskoInzenjerstvo.Data;
 using eOdsustva.SoftverskoInzenjerstvo.MappingProfile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,6 +69,19 @@ using (var scope = app.Services.CreateScope())
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
+    var context = services.GetRequiredService<ApplicationDbContext>();
+
+    if (!context.Departments.Any())
+    {
+        context.Departments.AddRange(
+            new Department { Name = "IT" },
+            new Department { Name = "HR" },
+            new Department { Name = "Production" }
+        );
+
+        await context.SaveChangesAsync();
+    }
+
     // 1️⃣ Proveri da li role postoji
     var adminRole = "Administrator";
     if (!await roleManager.RoleExistsAsync(adminRole))
@@ -81,19 +95,24 @@ using (var scope = app.Services.CreateScope())
 
     if (adminUser == null)
     {
+        var itDept = context.Departments.First(d => d.Name == "IT");
+
         adminUser = new ApplicationUser
         {
             UserName = adminEmail,
             Email = adminEmail,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+
+            FirstName = "Aleksandar",
+            LastName = "Hadžić",
+
+            DepartmentId = itDept.Id   // 👈 OVO JE BONUS
         };
 
-        // 3️⃣ Kreiraj user sa PLAIN lozinkom
         var result = await userManager.CreateAsync(adminUser, "Admin123!");
 
         if (result.Succeeded)
         {
-            // 4️⃣ Dodeli admin rolu
             await userManager.AddToRoleAsync(adminUser, adminRole);
         }
         else
