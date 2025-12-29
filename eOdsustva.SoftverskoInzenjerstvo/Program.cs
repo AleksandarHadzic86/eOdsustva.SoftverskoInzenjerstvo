@@ -1,40 +1,40 @@
 using AutoMapper;
 using eOdsustva.SoftverskoInzenjerstvo.Data;
 using eOdsustva.SoftverskoInzenjerstvo.MappingProfile;
+using eOdsustva.SoftverskoInzenjerstvo.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// DB
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddSingleton<IMapper>(sp =>
+// AutoMapper (clean way)
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<AutoMapperProfile>());
+
+// Identity
+builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    options.SignIn.RequireConfirmedAccount = true;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<ApplicationDbContext>();
 
-    var config = new MapperConfiguration(cfg =>
-    {
-        cfg.AddProfile<AutoMapperProfile>();
-    }, loggerFactory);
-
-    config.AssertConfigurationIsValid();
-    return config.CreateMapper(sp.GetService);
-});
-
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+builder.Services.AddScoped<UserScopeService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -42,89 +42,91 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); 
+
 app.UseRouting();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
+// Routes
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapRazorPages();
 
-
+// ✅ Seed: Departments + Roles + Admin
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
+    var context = services.GetRequiredService<ApplicationDbContext>();
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-    var context = services.GetRequiredService<ApplicationDbContext>();
+    await context.Database.MigrateAsync(); 
 
-    if (!context.Departments.Any())
+
+    var departmentNames = new[]
     {
-        context.Departments.AddRange(
-            new Department { Name = "IT" },
-            new Department { Name = "HR" },
-            new Department { Name = "Production" }
-        );
+        "IT",
+        "HR",
+        "Proizvodnja",
+        "Finansije",
+        "Marketing",
+        "Logistika"
+    };
 
-        await context.SaveChangesAsync();
+    foreach (var name in departmentNames)
+    {
+        if (!await context.Departments.AnyAsync(d => d.Name == name))
+        {
+            context.Departments.Add(new Department { Name = name });
+        }
     }
+    await context.SaveChangesAsync();
 
-    // 1️⃣ Proveri da li role postoji
+
     var adminRole = "Administrator";
     if (!await roleManager.RoleExistsAsync(adminRole))
     {
         await roleManager.CreateAsync(new IdentityRole(adminRole));
     }
 
-    // 2️⃣ Proveri da li admin user postoji
     var adminEmail = "aleksandarhadzic1986@gmail.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
     if (adminUser == null)
     {
-        var itDept = context.Departments.First(d => d.Name == "IT");
+        var itDept = await context.Departments.FirstOrDefaultAsync(d => d.Name == "IT");
+        if (itDept == null)
+            throw new Exception("Department 'IT' not found. Seeding departments failed.");
 
         adminUser = new ApplicationUser
         {
             UserName = adminEmail,
             Email = adminEmail,
             EmailConfirmed = true,
-
             FirstName = "Aleksandar",
             LastName = "Hadžić",
-
-            DepartmentId = itDept.Id   // 👈 OVO JE BONUS
+            DepartmentId = itDept.Id
         };
 
         var result = await userManager.CreateAsync(adminUser, "Admin123!");
 
-        if (result.Succeeded)
+        if (!result.Succeeded)
         {
-            await userManager.AddToRoleAsync(adminUser, adminRole);
+            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
-        else
-        {
-            throw new Exception(string.Join(
-                ", ",
-                result.Errors.Select(e => e.Description)
-            ));
-        }
+
+        await userManager.AddToRoleAsync(adminUser, adminRole);
     }
 }
 
-
-
 app.Run();
+

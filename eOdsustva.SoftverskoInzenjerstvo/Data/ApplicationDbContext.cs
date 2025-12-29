@@ -47,6 +47,5 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Data
         public DbSet<Period> Periods { get; set; }
         public DbSet<Department> Departments { get; set; }
 
-
     }
 }

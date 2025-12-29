@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
 {
@@ -20,7 +18,89 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
             _context = context;
         }
 
+        // =========================
+        // HELPERS
+        // =========================
+        private string GetUserId() =>
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        private async Task<int?> GetMyDepartmentIdAsync()
+        {
+            var userId = GetUserId();
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => u.DepartmentId)
+                .FirstOrDefaultAsync();
+        }
+
+        private IQueryable<LeaveAllocation> ApplyScope(IQueryable<LeaveAllocation> query, int? myDeptId)
+        {
+            // Admin vidi sve
+            if (User.IsInRole(Roles.Administrator))
+                return query;
+
+            // Supervisor vidi sve iz svog odeljenja
+            if (User.IsInRole(Roles.Supervisor))
+                return query.Where(x => x.Employee.DepartmentId == myDeptId);
+
+            // Employee vidi samo svoje
+            var userId = GetUserId();
+            return query.Where(x => x.EmployeeId == userId);
+        }
+
+        private async Task PopulateDropDownsAsync(LeaveAllocation? model = null)
+        {
+            int? myDeptId = null;
+            if (User.IsInRole(Roles.Supervisor) || !User.IsInRole(Roles.Administrator))
+                myDeptId = await GetMyDepartmentIdAsync();
+
+            // Employees dropdown: Admin = svi; Supervisor = samo iz svog odeljenja
+            var usersQuery = _context.Users.AsNoTracking();
+
+            if (User.IsInRole(Roles.Supervisor))
+            {
+                usersQuery = usersQuery.Where(u => u.DepartmentId == myDeptId);
+            }
+            else if (!User.IsInRole(Roles.Administrator))
+            {
+                // Ako običan employee ikad dođe do Create/Edit (ne bi trebalo), ograniči na sebe
+                var userId = GetUserId();
+                usersQuery = usersQuery.Where(u => u.Id == userId);
+            }
+
+            ViewData["EmployeeId"] = new SelectList(
+                await usersQuery
+                    .Select(u => new
+                    {
+                        u.Id,
+                        FullName = u.FirstName + " " + u.LastName
+                    })
+                    .OrderBy(u => u.FullName)
+                    .ToListAsync(),
+                "Id",
+                "FullName",
+                model?.EmployeeId
+            );
+
+            ViewData["LeaveTypeId"] = new SelectList(
+                await _context.LeaveTypes.AsNoTracking().OrderBy(x => x.Name).ToListAsync(),
+                "Id",
+                "Name",
+                model?.LeaveTypeId
+            );
+
+            ViewData["PeriodId"] = new SelectList(
+                await _context.Periods.AsNoTracking().OrderByDescending(p => p.Id).ToListAsync(),
+                "Id",
+                "Name", // ako je Year -> "Year"
+                model?.PeriodId
+            );
+        }
+
+        // =========================
         // GET: LeaveAllocations
+        // =========================
         public async Task<IActionResult> Index()
         {
             var query = _context.LeaveAllocations
@@ -29,69 +109,101 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
                 .Include(l => l.Period)
                 .AsQueryable();
 
-            // Ako korisnik NIJE Administrator → vidi samo svoje
-            if (!User.IsInRole(Roles.Administrator))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // 1) Admin vidi sve - ništa ne filtriramo
+            if (User.IsInRole(Roles.Administrator))
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                query = query.Where(x => x.EmployeeId == userId);
+                return View(await query.ToListAsync());
             }
+
+            // 2) Supervisor vidi samo svoje odeljenje
+            if (User.IsInRole(Roles.Supervisor))
+            {
+                var myDeptId = await _context.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => u.DepartmentId)
+                    .FirstOrDefaultAsync();
+
+                query = query.Where(x => x.Employee.DepartmentId == myDeptId);
+                return View(await query.ToListAsync());
+            }
+
+            // 3) Employee vidi samo svoje (FK filter)
+            query = query.Where(x => x.EmployeeId == userId);
 
             return View(await query.ToListAsync());
         }
 
+
+        // =========================
         // GET: LeaveAllocations/Details/5
+        // =========================
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null) return NotFound();
+            var query = _context.LeaveAllocations
+                 .Include(l => l.Employee).ThenInclude(e => e.Department)
+                 .Include(l => l.LeaveType)
+                 .Include(l => l.Period)
+                 .AsQueryable();
 
-            var leaveAllocation = await _context.LeaveAllocations
-                .Include(l => l.Employee)
-                .Include(l => l.LeaveType)
-                .Include(l => l.Period)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            // Admin - sve
+            if (!User.IsInRole(Roles.Administrator))
+            {
+                if (User.IsInRole(Roles.Supervisor))
+                {
+                    var myDeptId = await _context.Users
+                        .Where(u => u.Id == userId)
+                        .Select(u => u.DepartmentId)
+                        .FirstOrDefaultAsync();
+
+                    query = query.Where(x => x.Employee.DepartmentId == myDeptId);
+                }
+                else
+                {
+                    query = query.Where(x => x.EmployeeId == userId);
+                }
+            }
+
+            var leaveAllocation = await query.FirstOrDefaultAsync(m => m.Id == id);
             if (leaveAllocation == null) return NotFound();
-
             return View(leaveAllocation);
+
         }
 
-        // Helper: popuni dropdown-ove (da ne dupliraš kod svuda)
-        private void PopulateDropDowns(LeaveAllocation? model = null)
+        // =========================
+        // CREATE (Admin or Supervisor)
+        // =========================
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
+        public async Task<IActionResult> Create()
         {
-            ViewData["EmployeeId"] = new SelectList(
-                _context.Users.AsNoTracking(),
-                "Id",
-                "Email", // ako nema Email, stavi "UserName"
-                model?.EmployeeId
-            );
-
-            ViewData["LeaveTypeId"] = new SelectList(
-                _context.LeaveTypes.AsNoTracking(),
-                "Id",
-                "Name",
-                model?.LeaveTypeId
-            );
-
-            ViewData["PeriodId"] = new SelectList(
-                _context.Periods.AsNoTracking(),
-                "Id",
-                "Name", // ako nema Name nego Year -> zameni sa "Year"
-                model?.PeriodId
-            );
-        }
-
-        // GET: LeaveAllocations/Create
-        public IActionResult Create()
-        {
-            PopulateDropDowns();
+            await PopulateDropDownsAsync();
             return View();
         }
 
-        // POST: LeaveAllocations/Create
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("LeaveTypeId,EmployeeId,PeriodId,Days,Id")] LeaveAllocation leaveAllocation)
         {
+            // Supervisor ne sme da dodeli alokaciju zaposlenom iz drugog odeljenja
+            if (User.IsInRole(Roles.Supervisor))
+            {
+                var myDeptId = await GetMyDepartmentIdAsync();
+                var employeeDeptId = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == leaveAllocation.EmployeeId)
+                    .Select(u => u.DepartmentId)
+                    .FirstOrDefaultAsync();
+
+                if (employeeDeptId != myDeptId)
+                {
+                    return Forbid();
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(leaveAllocation);
@@ -99,28 +211,63 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            PopulateDropDowns(leaveAllocation);
+            await PopulateDropDownsAsync(leaveAllocation);
             return View(leaveAllocation);
         }
 
-        // GET: LeaveAllocations/Edit/5
+        // =========================
+        // EDIT (Admin or Supervisor)
+        // =========================
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
 
-            var leaveAllocation = await _context.LeaveAllocations.FindAsync(id);
-            if (leaveAllocation == null) return NotFound();
+            // prvo učitaj sa Employee da možemo scope check
+            var baseQuery = _context.LeaveAllocations
+                .Include(x => x.Employee)
+                .AsQueryable();
 
-            PopulateDropDowns(leaveAllocation);
+            var myDeptId = await GetMyDepartmentIdAsync();
+            var scopedQuery = ApplyScope(baseQuery, myDeptId);
+
+            var leaveAllocation = await scopedQuery.FirstOrDefaultAsync(x => x.Id == id);
+            if (leaveAllocation == null) return NotFound(); // ili Forbid()
+
+            await PopulateDropDownsAsync(leaveAllocation);
             return View(leaveAllocation);
         }
 
-        // POST: LeaveAllocations/Edit/5
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("LeaveTypeId,EmployeeId,PeriodId,Days,Id")] LeaveAllocation leaveAllocation)
         {
             if (id != leaveAllocation.Id) return NotFound();
+
+            // scope check (da ne može da edituje tuđe preko POST)
+            var baseQuery = _context.LeaveAllocations
+                .Include(x => x.Employee)
+                .AsQueryable();
+
+            var myDeptId = await GetMyDepartmentIdAsync();
+            var scopedQuery = ApplyScope(baseQuery, myDeptId);
+
+            var existing = await scopedQuery.FirstOrDefaultAsync(x => x.Id == id);
+            if (existing == null) return Forbid();
+
+            // Supervisor ne sme da promeni EmployeeId na drugu firmu/odeljenje
+            if (User.IsInRole(Roles.Supervisor))
+            {
+                var employeeDeptId = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == leaveAllocation.EmployeeId)
+                    .Select(u => u.DepartmentId)
+                    .FirstOrDefaultAsync();
+
+                if (employeeDeptId != myDeptId)
+                    return Forbid();
+            }
 
             if (ModelState.IsValid)
             {
@@ -133,45 +280,58 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
                 {
                     if (!LeaveAllocationExists(leaveAllocation.Id))
                         return NotFound();
-
                     throw;
                 }
 
                 return RedirectToAction(nameof(Index));
             }
 
-            PopulateDropDowns(leaveAllocation);
+            await PopulateDropDownsAsync(leaveAllocation);
             return View(leaveAllocation);
         }
 
-        // GET: LeaveAllocations/Delete/5
+        // =========================
+        // DELETE (Admin or Supervisor)
+        // =========================
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
-            var leaveAllocation = await _context.LeaveAllocations
-                .Include(l => l.Employee)
+            var baseQuery = _context.LeaveAllocations
+                .Include(l => l.Employee).ThenInclude(e => e.Department)
                 .Include(l => l.LeaveType)
                 .Include(l => l.Period)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .AsQueryable();
 
-            if (leaveAllocation == null) return NotFound();
+            var myDeptId = await GetMyDepartmentIdAsync();
+            var query = ApplyScope(baseQuery, myDeptId);
+
+            var leaveAllocation = await query.FirstOrDefaultAsync(m => m.Id == id);
+            if (leaveAllocation == null) return NotFound(); // ili Forbid()
 
             return View(leaveAllocation);
         }
 
-        // POST: LeaveAllocations/Delete/5
+        [Authorize(Roles = $"{Roles.Administrator},{Roles.Supervisor}")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var leaveAllocation = await _context.LeaveAllocations.FindAsync(id);
-            if (leaveAllocation != null)
-            {
-                _context.LeaveAllocations.Remove(leaveAllocation);
-            }
+            // scope check (POST)
+            var baseQuery = _context.LeaveAllocations
+                .Include(x => x.Employee)
+                .AsQueryable();
 
+            var myDeptId = await GetMyDepartmentIdAsync();
+            var scopedQuery = ApplyScope(baseQuery, myDeptId);
+
+            var leaveAllocation = await scopedQuery.FirstOrDefaultAsync(x => x.Id == id);
+            if (leaveAllocation == null) return Forbid();
+
+            _context.LeaveAllocations.Remove(leaveAllocation);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 
