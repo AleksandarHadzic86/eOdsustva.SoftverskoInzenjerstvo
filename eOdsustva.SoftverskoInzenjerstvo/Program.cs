@@ -68,45 +68,11 @@ using (var scope = app.Services.CreateScope())
     var context = services.GetRequiredService<ApplicationDbContext>();
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-    await context.Database.MigrateAsync(); 
-
-
-    var departmentNames = new[]
-    {
-        "IT",
-        "HR",
-        "Proizvodnja",
-        "Finansije",
-        "Marketing",
-        "Logistika"
-    };
-
-    foreach (var name in departmentNames)
-    {
-        if (!await context.Departments.AnyAsync(d => d.Name == name))
-        {
-            context.Departments.Add(new Department { Name = name });
-        }
-    }
-    await context.SaveChangesAsync();
-
-
-    var adminRole = "Administrator";
-    if (!await roleManager.RoleExistsAsync(adminRole))
-    {
-        await roleManager.CreateAsync(new IdentityRole(adminRole));
-    }
-
     var adminEmail = "aleksandarhadzic1986@gmail.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
     if (adminUser == null)
     {
-        var itDept = await context.Departments.FirstOrDefaultAsync(d => d.Name == "IT");
-        if (itDept == null)
-            throw new Exception("Department 'IT' not found. Seeding departments failed.");
-
         adminUser = new ApplicationUser
         {
             UserName = adminEmail,
@@ -114,18 +80,16 @@ using (var scope = app.Services.CreateScope())
             EmailConfirmed = true,
             FirstName = "Aleksandar",
             LastName = "Hadžić",
-            DepartmentId = itDept.Id
+            DepartmentId = 1 // DIREKTNO dodeljujemo ID jer znamo da je IT pod brojem 1 iz DbContext-a
         };
 
         var result = await userManager.CreateAsync(adminUser, "Admin123!");
-
-        if (!result.Succeeded)
+        if (result.Succeeded)
         {
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            await userManager.AddToRoleAsync(adminUser, "Administrator");
         }
-
-        await userManager.AddToRoleAsync(adminUser, adminRole);
     }
+
 }
 
 app.Run();

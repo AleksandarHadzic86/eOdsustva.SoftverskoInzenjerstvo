@@ -1,4 +1,5 @@
-﻿@model eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation
+﻿@using eOdsustva.SoftverskoInzenjerstvo.Common
+@model eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation
 
 @{
     ViewData["Title"] = "Edit";
@@ -34,7 +35,10 @@
             </div>
             <input type="hidden" asp-for="Id" />
             <div class="form-group">
-                <input type="submit" value="Sacuvaj" class="btn btn-warning" />
+                @if (User.IsInRole(Roles.Supervisor))
+                    {
+                        <input type="submit" value="Sacuvaj" class="btn btn-warning" />
+                    }
                 <a asp-action="Index" class="btn btn-primary">Nazad na Listu</a>
             </div>
         </form>

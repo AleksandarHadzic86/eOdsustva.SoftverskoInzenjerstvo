@@ -16,7 +16,7 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Data
         [DataType(DataType.Date)]
         public DateOnly DateOfBirth { get; set; }
 
-        public int? DepartmentId { get; set; }   
+        public int DepartmentId { get; set; }
         public Department Department { get; set; }
     }
 }
