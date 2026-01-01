@@ -1,4 +1,5 @@
-﻿namespace eOdsustva.SoftverskoInzenjerstvo.Data
+﻿
+namespace eOdsustva.SoftverskoInzenjerstvo.Data
 {
     public abstract class BaseEntity
     {

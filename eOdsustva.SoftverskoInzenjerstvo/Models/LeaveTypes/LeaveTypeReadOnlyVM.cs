@@ -4,11 +4,11 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Models.LeaveTypes
 {
     public class LeaveTypeReadOnlyVM : BaseLeaveTypeVM
     {
-        
+
         [Display(Name = "Naziv")]
         public string Name { get; set; }
 
-
+  
         [Display(Name = "Maksimalan Broj dana")]
         public int NumberOfDays { get; set; }
 

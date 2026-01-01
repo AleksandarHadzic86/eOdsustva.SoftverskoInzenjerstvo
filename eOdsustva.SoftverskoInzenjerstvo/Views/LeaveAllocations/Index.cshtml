@@ -1,5 +1,6 @@
 ﻿@using eOdsustva.SoftverskoInzenjerstvo.Common
-@model IEnumerable<eOdsustva.SoftverskoInzenjerstvo.Data.LeaveAllocation>
+@using eOdsustva.SoftverskoInzenjerstvo.Models.LeaveAllocation
+@model List<LeaveAllocationListVM>
 
 @{
     ViewData["Title"] = "Dodela Odsustva";
@@ -27,21 +28,11 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>
-                    @item.LeaveType?.Name
-                </td>
-                <td>
-                    @item.Employee?.Email
-                </td>
-                <td>
-                    @item.Employee?.Department?.Name
-                </td>
-                <td>
-                    @item.Period?.Name
-                </td>
-                <td class="text-center">
-                    @item.Days
-                </td>
+                <td>@item.LeaveTypeName</td>
+                <td>@item.EmployeeFullName</td>
+                <td>@item.DepartmentName</td>
+                <td>@item.PeriodName</td>
+                <td class="text-center">@item.Days</td>
                 <td class="text-center">
                     <a asp-action="Details" asp-route-id="@item.Id"
                        class="btn btn-info">Detalji</a>

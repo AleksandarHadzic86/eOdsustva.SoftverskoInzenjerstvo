@@ -4,16 +4,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace eOdsustva.SoftverskoInzenjerstvo.Models.LeaveAllocation
 {
-    public class LeaveAllocationVM
+    public class LeaveAllocationListVM
     {
         public int Id { get; set; }
-
-        [Display(Name = "Number Of Days")]
+        public string EmployeeFullName { get; set; } = "";
+        public string? DepartmentName { get; set; }
+        public string LeaveTypeName { get; set; } = "";
+        public string PeriodName { get; set; } = "";
         public int Days { get; set; }
-
-        [Display(Name = "Allocation Period")]
-        public PeriodVM Period { get; set; } = new PeriodVM();
-
-        public LeaveTypeReadOnlyVM LeaveType { get; set; } = new LeaveTypeReadOnlyVM();
     }
 }

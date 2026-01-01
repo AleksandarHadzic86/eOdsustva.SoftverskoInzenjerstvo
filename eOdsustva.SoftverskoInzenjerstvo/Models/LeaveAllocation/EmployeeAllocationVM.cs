@@ -9,6 +9,6 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Models.LeaveAllocation
         [DataType(DataType.Date)]
         public DateOnly DateOfBirth { get; set; }
         public bool IsCompletedAllocation { get; set; }
-        public List<LeaveAllocationVM> LeaveAllocations { get; set; }
+        public List<LeaveAllocationListVM> LeaveAllocations { get; set; }
     }
 }

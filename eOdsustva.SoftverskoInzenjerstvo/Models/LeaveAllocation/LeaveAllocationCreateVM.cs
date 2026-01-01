@@ -2,24 +2,20 @@
 
 namespace eOdsustva.SoftverskoInzenjerstvo.Models.LeaveAllocation
 {
-    public class LeaveAllocationEditVM : LeaveAllocationListVM
+    public class LeaveAllocationCreateVM
     {
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "Zaposleni")]
         public string EmployeeId { get; set; } = "";
 
         [Required]
-        [Display(Name = "Vrsta odsustva")]
         public int LeaveTypeId { get; set; }
 
         [Required]
-        [Display(Name = "Period")]
         public int PeriodId { get; set; }
 
         [Range(1, 365)]
-        [Display(Name = "Broj dana")]
         public int Days { get; set; }
     }
 }

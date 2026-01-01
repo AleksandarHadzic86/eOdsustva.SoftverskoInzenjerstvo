@@ -17,6 +17,26 @@ namespace eOdsustva.SoftverskoInzenjerstvo.MappingProfile
 
             CreateMap<Period, PeriodVM>();
 
+      
+            CreateMap<LeaveAllocation, LeaveAllocationListVM>()
+                .ForMember(d => d.EmployeeFullName,
+                    o => o.MapFrom(s => s.Employee.FirstName + " " + s.Employee.LastName))
+                .ForMember(d => d.DepartmentName,
+                    o => o.MapFrom(s => s.Employee.Department.Name))
+                .ForMember(d => d.LeaveTypeName,
+                    o => o.MapFrom(s => s.LeaveType.Name))
+                .ForMember(d => d.PeriodName,
+                    o => o.MapFrom(s => s.Period.Name));
+
+            CreateMap<LeaveAllocation, LeaveAllocationDetailsVM>()
+                .IncludeBase<LeaveAllocation, LeaveAllocationListVM>();
+
+            CreateMap<LeaveAllocation, LeaveAllocationEditVM>().ReverseMap();
+
+            CreateMap<LeaveAllocation, LeaveAllocationCreateVM>().ReverseMap();
+
+            CreateMap<LeaveAllocation, LeaveAllocationDeleteVM>()
+            .IncludeBase<LeaveAllocation, LeaveAllocationListVM>();
 
         }
     }

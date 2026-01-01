@@ -25,12 +25,17 @@ namespace eOdsustva.SoftverskoInzenjerstvo.Controllers
             _context = context;
             _mapper = mapper;
         }   
+
+
         public async Task<IActionResult> Index()
         {
+            //ucitavanje svih vrsta odsustva iz baze
             var data = await _context.LeaveTypes.ToListAsync();
-           
+
+            //mapiranje podataka iz entiteta LeaveType u LeaveTypeReadOnlyVM
             var viewData = _mapper.Map<List<LeaveTypeReadOnlyVM>>(data);
 
+            //prosledjivanje podataka u view LaveTypes/Index.cshtml
             return View(viewData);
         }
 
